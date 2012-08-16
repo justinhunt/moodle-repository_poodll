@@ -11,11 +11,25 @@
 require_once($CFG->dirroot . '/filter/poodll/poodllresourcelib.php');
  
 class repository_poodll extends repository {
+
+
+	//here we add some constants to keep it readable
+	const POODLLAUDIO = 0;
+	const POODLLVIDEO = 1;
+	const POODLLSNAPSHOT = 2;
+	const MP3AUDIO = 3;
+	const POODLLWIDGET = 4;
+	const POODLLWHITEBOARD = 5;
+	
+
+
+
     /*
      * Begin of File picker API implementation
      */
     public function __construct($repositoryid, $context = SYSCONTEXTID, $options = array()) {
-        global $action, $itemid;
+        global $CFG, $PAGE;
+        
         parent::__construct ($repositoryid, $context, $options);
      
     }
@@ -24,14 +38,15 @@ class repository_poodll extends repository {
     	return array('recording_format');
     }
     
-    //2.3 requires static, 2.2 non static, what to do? Justin 20120616
-    public function instance_config_form($mform) {
+    //2.3 requires static, 2.2 non static, what to do? Justin 20120616 
+    // created a 2.3 repo Justin 20120621
+    public static function instance_config_form($mform) {
         $recording_format_options = array(
         	get_string('audio', 'repository_poodll'),
         	get_string('video', 'repository_poodll'),
 			get_string('snapshot', 'repository_poodll'),
-			get_string('mp3recorder', 'repository_poodll')
-			
+			get_string('mp3recorder', 'repository_poodll'),
+			get_string('widget', 'repository_poodll')
         );
         
         $mform->addElement('select', 'recording_format', get_string('recording_format', 'repository_poodll'), $recording_format_options);
@@ -51,20 +66,28 @@ class repository_poodll extends repository {
     public function print_login($ajax = true) {
 		global $CFG,$PAGE,$USER;
 
+		//In Moodle 2.3 early version, screen was too narrow
+		$screenistoonarrow=false;
 		
 		//Init our array
         $ret = array();
 		
-		//if we are using Paul Nichols MP3 repository or Snap shot we diverge here
+		//If we plan to use a div which floats over the real form, we can use this 
+		//for Paul Nichols MP3 recorder or Snap shot . But we don't use this anymore.
+		//its legacy code.
+		/*
 		$injectwidget= "";
 		switch ($this->options['recording_format']){
 			//MP3 Recorder
-			case 3: $injectwidget=$this->fetch_mp3recorder();
+			case 3000: $injectwidget=$this->fetch_mp3recorder();
+					
+					//add for 2.3 compatibility Justin 20120622
+					 $ret = array('nosearch'=>true, 'norefresh'=>true);
+					 
 					$ret['upload'] = array('label'=>$injectwidget, 'id'=>'repo-form');
 					return $ret;
 					break;
-			//snapshot case 2
-			//possibly drawpad case 4
+			//snapshot 
 			case 2000: 
 				$iframe = "<input type=\"hidden\"  name=\"upload_filename\" id=\"upload_filename\" value=\"sausages.mp3\"/>";
                 $iframe = "<textarea name=\"upload_filedata\" id=\"upload_filedata\" style=\"display:none;\"></textarea>";
@@ -79,15 +102,49 @@ class repository_poodll extends repository {
 		
 		}
 		
+		*/
 		
+		//If we are selecting PoodLL Widgets, we don't need to show a login/search screen
+		//just list the widgets
+		if ($this->options['recording_format'] == self::POODLLWIDGET){
+			$ret = array();
+			$ret['dynload'] = true;
+			$ret['nosearch'] = true;
+			$ret['nologin'] = true;
+			$ret['list'] = $this->fetch_poodllwidgets();
+			return $ret;
 		
-		//If we are using an ifram based repo
+		}	
+		
+		//If we are using an iframe based repo
         $search = new stdClass();
         $search->type = 'hidden';
         $search->id   = 'filename';
         $search->name = 's';
-		$search->label = "<iframe scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}\" height=\"350\" width=\"450\"></iframe>"; 
-
+       // $search->value = 'winkle.mp3';
+        
+        //change next button and iframe proportions depending on recorder
+        switch($this->options['recording_format']){
+        	//video,snapshot
+        	case self::POODLLVIDEO: 
+			case self::POODLLSNAPSHOT: 	
+					$height=350;
+					$width=330;
+					if($screenistoonarrow){
+						$button = "<button class=\"fp-login-submit\" style=\"position:relative; top:-200px;\" >Next >>></button>";
+					}else{
+						$button= "";
+					}
+					break;
+			//audio		
+			case self::POODLLAUDIO:
+			case self::MP3AUDIO:
+					$height=220;
+					$width=450;
+					$button = "";
+					break;
+        }
+		$search->label = "<iframe scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}\" height=\"". $height ."\" width=\"" . $width . "\"></iframe>" . $button; 
 
 		$sort = new stdClass();
         $sort->type = 'hidden';
@@ -103,7 +160,7 @@ class repository_poodll extends repository {
         return $ret;
 
     }
-	
+    
 
 	public function check_login() {
         return !empty($this->keyword);
@@ -118,8 +175,7 @@ class repository_poodll extends repository {
      // @return array structure of listing information
      //
     public function get_listing($path='', $page='') {
-        global $CFG, $action;
-			return  array();
+			return array();
 		
    }
    
@@ -136,34 +192,41 @@ class repository_poodll extends repository {
 		$ret['nosearch'] = true;
         $ret['norefresh'] = true;
         //echo $filename;
-		$ret['list'] = $this->fetch_file($filename);
+		$ret['list'] = $this->fetch_filelist($filename);
 		
         return $ret;
     }
 	
 	    /**
-     * Private method to fetch details on our recorded file
+     * Private method to fetch details on our recorded file,
+	 * and filter options
      * @param string $keyword
      * @param int $start
      * @param int $max max results
      * @param string $sort
      * @return array
      */
-    private function fetch_file($filename) {
+    private function fetch_filelist($filename) {
 		global $CFG;
+	
+		$showoptions=true;
+		$canconvert=true;
 	
         $list = array();
 		
 		//if user did not record anything, or the recording copy failed can out sadly.
 		if(!$filename){return $list;}
 		
+		//determine the file extension
+		$ext = substr($filename,-4); 
+		
+		//determine the download source
 		switch($this->options['recording_format']){
-			case 0:
-			case 1:
+			case self::POODLLAUDIO:
+			case self::POODLLVIDEO:
 				//set up auto transcoding (mp3) or not
 				//The jsp to call is different.
 				$jsp="download.jsp";
-				$ext = substr($filename,-4); 
 				if($ext ==".mp4" || $ext ==".mp3"){
 					$jsp = "convert.jsp";
 				}
@@ -175,26 +238,226 @@ class repository_poodll extends repository {
 			
 			//this is the download script for snapshots and direct uploads
 			//the upload script is the same file, called from widget directly. Callback posted filename back to form
-			case 2:
+			case self::POODLLSNAPSHOT:
+			case self::MP3AUDIO:
 				$source=$CFG->wwwroot . '/repository/poodll/uploadHandler.php?filename=' . $filename;
 				break;
 		
 		}
         
-						
-
-            $list[] = array(
+		//determine the player options
+		switch($this->options['recording_format']){
+			case self::POODLLAUDIO:
+			case self::MP3AUDIO:
+				
+					//normal player
+					if($ext==".mp3"){
+						$list[] = array(
+							'title'=> $filename,
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/audionormal.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>$source
+						);
+					
+					}else{
+						$list[] = array(
+							'title'=> substr_replace($filename,'.audio.flv',-4),
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/audionormal.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>$source
+						);
+					}
+				
+				if($showoptions){
+					$list[] = array(
+							'title'=> substr_replace($filename,'.mini'. $ext,-4),
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/miniplayer.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>$source
+						);
+					
+					$list[] = array(
+							'title'=> substr_replace($filename,'.word'. $ext,-4),
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/wordplayer.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>$source
+						);
+				}
+				break;
+		default:
+				
+			 $list[] = array(
                 'title'=>$filename,
                 'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/bigicon.png",
-                'thumbnail_width'=>440,
-                'thumbnail_height'=>180,
+                'thumbnail_width'=>330,
+                'thumbnail_height'=>115,
                 'size'=>'',
                 'date'=>'',
                 'source'=>$source
             );
-       
+		
+		}
+           
+       //return the list of files/player options
         return $list;
+		
     }
+	
+	/**
+     *	Return an array of widget selectors, to be displayed in search results screen 
+     * @return array
+     */
+	private function fetch_poodllwidgets(){
+	global $CFG;
+					
+					$list = array();
+	
+						//stopwatch
+						$list[] = array(
+							'title'=> "stopwatch.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repostopwatch.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'stopwatch.pdl'
+						);
+						//calculator
+						$list[] = array(
+							'title'=> "calculator.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repocalculator.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'calculator.pdl'
+						);
+						//countdown timer
+						$list[] = array(
+							'title'=> "countdown_60.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repocountdown.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'countdown_60.pdl'
+						);
+						//dice
+						$list[] = array(
+							'title'=> "dice_2.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repodice.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'dice_2.pdl'
+						);
+						//simplewhiteboard
+						$list[] = array(
+							'title'=> "whiteboardsimple.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/reposimplewhiteboard.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'whiteboardsimple.pdl'
+						);
+						//fullwhiteboard
+						$list[] = array(
+							'title'=> "whiteboardfull.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repofullwhiteboard.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'whiteboardfull.pdl'
+						);
+						//audiorecorder
+						$list[] = array(
+							'title'=> "audiorecorder.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repoaudiorecorder.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'audiorecorder.pdl'
+						);
+						//videorecorder
+						$list[] = array(
+							'title'=> "audiorecorder.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repovideorecorder.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'videorecorder.pdl'
+						);
+						//click counter
+						$list[] = array(
+							'title'=> "counter.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repoclickcounter.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'counter.pdl'
+						);
+						//sliderocket
+						$list[] = array(
+							'title'=> "sliderocket_1234567.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/reposliderocket.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'sliderocket_1234567.pdl'
+						);
+						//quizlet
+						$list[] = array(
+							'title'=> "quizlet_1234567.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repoquizlet.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'quizlet_1234567.pdl'
+						);
+						//snapshot
+						$list[] = array(
+							'title'=> "snapshot.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/reposnapshot.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'snapshot.pdl'
+						);
+						//flashcards
+						$list[] = array(
+							'title'=> "flashcards_1234.pdl.mp4",
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repoflashcards.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>'poodll.pdl'
+						);
+	
+			return $list;
+	
+	}
 	
 
 	  /**
@@ -202,7 +465,12 @@ class repository_poodll extends repository {
      * @return string
      */
     public function supported_returntypes() {
-        return FILE_INTERNAL;
+
+		if($this->options['recording_format'] == self::POODLLWIDGET){
+			return FILE_EXTERNAL;
+		}else{
+			return FILE_INTERNAL;
+		}
     }
 	
 
@@ -224,15 +492,21 @@ class repository_poodll extends repository {
     public function supported_filetypes() {
 		
 		switch($this->options['recording_format']){
-			case 0:
-			case 1:
-				$ret= array('.flv');
+			case self::POODLLAUDIO:
+			case self::POODLLVIDEO:
+				$ret= array('.flv','.mp4','.mp3');
 				break;
-			case 2:
+				
+			case self::POODLLSNAPSHOT:
 				$ret = array('.jpg');
 				break;
-			case 3:
+				
+			case self::MP3AUDIO:
 				$ret = array('.mp3');
+				break;
+				
+			case self::POODLLWIDGET:
+				$ret = array('.pdl','.mp4');
 				break;
 		}
 		return $ret;
@@ -247,14 +521,17 @@ class repository_poodll extends repository {
 	//	$draftitemid=0;
 	//	$ret = '<form name="poodll_repository" action="' . $CFG->wwwroot . '/repository/poodll/recorder.php">';
 		switch($this->options['recording_format']){
-			case 0:
+			case self::POODLLAUDIO:
 				$ret = fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,'filename');
 				break;
-			case 1:
+			case self::POODLLVIDEO:
 				$ret = fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,'filename','','298', '340');
 				break;
-			case 2:
-			case 3:
+			case self::MP3AUDIO:
+				//this is the mp3 recorder, by Paul Nichols
+				$ret = $this->fetchMP3PostRecorder("filename","apic.jpg", '290','340');
+				break;
+			case self::POODLLSNAPSHOT:
 				$ret = fetchSnapshotCamera("filename","apic.jpg", '290','340');
 				break;
 		}
@@ -267,87 +544,26 @@ class repository_poodll extends repository {
 	//Start of  Paul Nichols MP3 Recorder
 	//====================================================================================
 	
-	/**
-     * Process uploaded file
-     * @return array|bool
-     */
-    public function upload($search_text) {
-        global $USER, $CFG;
-
-        $record = new stdClass();
-        $record->filearea = 'draft';
-        $record->component = 'user';
-        $record->filepath = optional_param('savepath', '/', PARAM_PATH);
-        $record->itemid   = optional_param('itemid', 0, PARAM_INT);
-        $record->license  = optional_param('license', $CFG->sitedefaultlicense, PARAM_TEXT);
-        $record->author   = optional_param('author', '', PARAM_TEXT);
-
-        $context = get_context_instance(CONTEXT_USER, $USER->id);
-        $filename = required_param('upload_filename', PARAM_FILE);
-        $filedata = required_param('upload_filedata', PARAM_RAW);
-        $filedata = base64_decode($filedata);
-
-        $fs = get_file_storage();
-        $sm = get_string_manager();
-
-        if ($record->filepath !== '/') {
-            $record->filepath = file_correct_filepath($record->filepath);
-        }
-
-        $record->filename = $filename;
-        
-        if (empty($record->itemid)) {
-            $record->itemid = 0;
-        }
-
-        $record->contextid = $context->id;
-        $record->userid    = $USER->id;
-        $record->source    = '';
-
-        if (repository::draftfile_exists($record->itemid, $record->filepath, $record->filename)) {
-            $existingfilename = $record->filename;
-            $unused_filename = repository::get_unused_filename($record->itemid, $record->filepath, $record->filename);
-            $record->filename = $unused_filename;
-            $stored_file = $fs->create_file_from_string($record, $filedata);
-            $event = array();
-            $event['event'] = 'fileexists';
-            $event['newfile'] = new stdClass;
-            $event['newfile']->filepath = $record->filepath;
-            $event['newfile']->filename = $unused_filename;
-            $event['newfile']->url = moodle_url::make_draftfile_url($record->itemid, $record->filepath, $unused_filename)->out();
-
-            $event['existingfile'] = new stdClass;
-            $event['existingfile']->filepath = $record->filepath;
-            $event['existingfile']->filename = $existingfilename;
-            $event['existingfile']->url      = moodle_url::make_draftfile_url($record->itemid, $record->filepath, $existingfilename)->out();;
-            return $event;
-        } else {
-            $stored_file = $fs->create_file_from_string($record, $filedata);
-
-                
-            return array(
-                'url'=>moodle_url::make_draftfile_url($record->itemid, $record->filepath, $record->filename)->out(),
-                'id'=>$record->itemid,
-                'file'=>$record->filename);
-        }
-    }
 	
-	public function fetch_mp3recorder(){
+	public function fetchMP3PostRecorder($param1,$param2,$param3,$param4){
 		 global $CFG;
+		// return fetch_mp3recorder();
        //initialize our return string
 	   $recorder = "";
+	 //  $filename ="pp.mp3";
        
 	   //set up params for mp3 recorder
-	   $url=$CFG->wwwroot.'/filter/poodll/flash/mp3recorder.swf?gateway=form';
-		$callback = urlencode("(function(a, b){d=document;d.g=d.getElementById;fn=d.g('upload_filename');fn.value=a;fd=d.g('upload_filedata');fd.value=b;f=fn;while(f.tagName!='FORM')f=f.parentNode;f.repo_upload_file.type='text';f.repo_upload_file.value='bogus.mp3';f.nextSibling.getElementsByTagName('button')[0].click();})");
-        $flashvars="&callback={$callback}&filename=new_recording";
-		
+	   $url=$CFG->wwwroot.'/filter/poodll/flash/mp3recorder.swf?gateway=' . $CFG->wwwroot . '/repository/poodll/uploadHandler.php'; // /recorder=mp3/filename=' . $filename;//?filename=' . $filename;
+		//$callback = urlencode("(function(a, b){d=parent.document;d.g=d.getElementById;fn=d.g('filename');fn.value=a;fd=d.g('upload_filedata');fd.value=b;f=fn;while(f.tagName!='FORM')f=f.parentNode;f.repo_upload_file.type='text';f.repo_upload_file.value='bogus.mp3';while(f.tagName!='DIV')f=f.nextSibling;f.getElementsByTagName('button')[0].click();})");
+		 // $flashvars="&callback={$callback}&forcename=winkle";
+		$flashvars="&filename=audio" . rand(10000,99999);
+		  
+		  
 		//make our insert string
         $recorder = '<div style="position:absolute; top:0;left:0;right:0;bottom:0; background-color:#fff;">
                 <input type="hidden"  name="upload_filename" id="upload_filename" value="sausages.mp3"/>
                 <textarea name="upload_filedata" id="upload_filedata" style="display:none;"></textarea>
-               <!-- <textarea name="filename" id="filename" style="display:none;">sausages.mp3</textarea>
-                 <textarea name="repo_upload_file" id="repo_upload_file" style="display:none;"></textarea> -->
+
                 <div id="onlineaudiorecordersection" style="margin:20% auto; text-align:center;">
                     <object id="onlineaudiorecorder" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="215" height="138">
                         <param name="movie" value="'.$url.$flashvars.'" />
@@ -369,6 +585,8 @@ class repository_poodll extends repository {
 			return $recorder;
 	
 	}
+	
+
 	
 	//=====================================================================================
 	//End of  Paul Nichols MP3 Recorder

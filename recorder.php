@@ -1,8 +1,11 @@
 <?php
 require_once('../../config.php');
 require_once($CFG->dirroot.'/repository/lib.php');
-
 global $PAGE, $USER;
+
+//this doesnt seem to work here. So had to put an echo "...embed-comressed.jpg" code below
+//$PAGE->requires->js(new moodle_url($CFG->httpswwwroot . '/filter/poodll/flash/embed-compressed.js'),true);
+
 // we get the request parameters:
 // the repository ID controls where the file will be added
 $repo_id = required_param('repo_id', PARAM_INT); // repository ID
@@ -23,6 +26,7 @@ $PAGE->set_url($CFG->wwwroot.'/repository/poodll/record.php', array('repo_id' =>
 
 <div style="text-align: center;">
 <?php if($filename==''){
+			echo "<script type=\"text/javascript\" src=\"{$CFG->wwwroot}/filter/poodll/flash/embed-compressed.js\"></script> ";
 			$repo->fetch_recorder();
 		}else{
 			echo 'filename:' . $filename ;

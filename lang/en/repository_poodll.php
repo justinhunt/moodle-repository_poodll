@@ -15,5 +15,6 @@ $string['audio'] = 'Audio Recorder(Red5)';
 $string['video'] = 'Video Recorder(Red5)';
 $string['mp3recorder'] = 'AudioRecorder(MP3 Standalone)';
 $string['snapshot'] = 'Snapshot(Webcam)';
+$string['widget'] = 'PoodLL Widgets';
 
 $string['recording_format'] = 'PoodLL Repository Type';
