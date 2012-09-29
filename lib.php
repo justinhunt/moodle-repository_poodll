@@ -9,6 +9,8 @@
  
 //Get our poodll resource handling lib
 require_once($CFG->dirroot . '/filter/poodll/poodllresourcelib.php');
+//added for moodle 2
+require_once($CFG->libdir . '/filelib.php');
  
 class repository_poodll extends repository {
 
@@ -46,7 +48,8 @@ class repository_poodll extends repository {
         	get_string('video', 'repository_poodll'),
 			get_string('snapshot', 'repository_poodll'),
 			get_string('mp3recorder', 'repository_poodll'),
-			get_string('widget', 'repository_poodll')
+			get_string('widget', 'repository_poodll'),
+			get_string('whiteboard', 'repository_poodll')
         );
         
         $mform->addElement('select', 'recording_format', get_string('recording_format', 'repository_poodll'), $recording_format_options);
@@ -119,7 +122,7 @@ class repository_poodll extends repository {
 		//If we are using an iframe based repo
         $search = new stdClass();
         $search->type = 'hidden';
-        $search->id   = 'filename';
+        $search->id   = 'filename' . '_' . $this->options['recording_format'] ;
         $search->name = 's';
        // $search->value = 'winkle.mp3';
         
@@ -141,6 +144,12 @@ class repository_poodll extends repository {
 			case self::MP3AUDIO:
 					$height=220;
 					$width=450;
+					$button = "";
+					break;
+			
+			case self::POODLLWHITEBOARD:
+					$height=380;
+					$width=520;
 					$button = "";
 					break;
         }
@@ -207,7 +216,7 @@ class repository_poodll extends repository {
      * @return array
      */
     private function fetch_filelist($filename) {
-		global $CFG;
+		global $CFG,$USER;
 	
 		$showoptions=true;
 		$canconvert=true;
@@ -216,6 +225,7 @@ class repository_poodll extends repository {
 		
 		//if user did not record anything, or the recording copy failed can out sadly.
 		if(!$filename){return $list;}
+		//if(!$filename){$filename="houses.jpg";}
 		
 		//determine the file extension
 		$ext = substr($filename,-4); 
@@ -236,12 +246,34 @@ class repository_poodll extends repository {
 						$CFG->filter_poodll_serverid . "&filename=" . $filename . "&caller=" . urlencode($CFG->wwwroot);
 				break;
 			
-			//this is the download script for snapshots and direct uploads
+			//this was the download script for snapshots and direct uploads
 			//the upload script is the same file, called from widget directly. Callback posted filename back to form
-			case self::POODLLSNAPSHOT:
+			//case self::POODLLSNAPSHOT:
+			//	$source=$CFG->wwwroot . '/repository/poodll/uploadHandler.php?filename=' . $filename;
+			//	break;
+			
+			case self::POODLLSNAPSHOT:	
 			case self::MP3AUDIO:
-				$source=$CFG->wwwroot . '/repository/poodll/uploadHandler.php?filename=' . $filename;
-				break;
+			case self::POODLLWHITEBOARD:
+				//$source=$CFG->wwwroot . '/repository/poodll/uploadHandler.php?filename=' . $filename;
+				//$source = $filename;
+				
+				/*
+				$browser = get_file_browser();
+				$fileinfo = $browser->get_file_info($context->id,"user","draft","0","/",$filename );
+				$context = get_context_instance(CONTEXT_USER, $USER->id);
+				
+				//If we could get an info object, process. But if we couldn't, although we have info via $f, we don't have permissions
+				//so we don't reveal it
+				$urltofile = "no title";
+				if($fileinfo){
+					$urltofile = $fileinfo->get_url();
+				}
+				
+				*/
+				
+				$urltofile = moodle_url::make_draftfile_url("0", "/", $filename)->out(false);
+				$source=$urltofile;
 		
 		}
         
@@ -294,6 +326,26 @@ class repository_poodll extends repository {
 							'date'=>'',
 							'source'=>$source
 						);
+						
+					$list[] = array(
+							'title'=> substr_replace($filename,'.inlineword'. $ext,-4),
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/inlinewordplayer.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>$source
+						);
+					
+					$list[] = array(
+							'title'=> substr_replace($filename,'.once'. $ext,-4),
+							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/onceplayer.jpg",
+							'thumbnail_width'=>280,
+							'thumbnail_height'=>100,
+							'size'=>'',
+							'date'=>'',
+							'source'=>$source
+						);
 				}
 				break;
 		default:
@@ -313,6 +365,64 @@ class repository_poodll extends repository {
        //return the list of files/player options
         return $list;
 		
+    }
+	
+	   /**
+     * Download a file, this function can be overridden by subclass. {@link curl}
+     *
+     * @param string $url the url of file
+     * @param string $filename save location
+     * @return array with elements:
+     *   path: internal location of the file
+     *   url: URL to the source (from parameters)
+     */
+    public function get_file($url, $filename = '') {
+        global $CFG,$USER;
+		
+		//determine the player options
+		switch($this->options['recording_format']){
+			case self::POODLLSNAPSHOT:
+			case self::MP3AUDIO:
+			case self::POODLLWHITEBOARD:
+					//get the filename as used by our recorder
+					$recordedname = basename($url);
+					
+					//get a temporary download path
+					$path = $this->prepare_file($filename);
+
+					//fetch the file we submitted earlier
+				   $fs = get_file_storage();
+				   $context = get_context_instance(CONTEXT_USER, $USER->id);
+					$f = $fs->get_file($context->id, "user", "draft",
+                        "0", "/", $recordedname);
+				
+					//write the file out to the temporary location
+					$fhandle = fopen($path, 'w');
+					$data = $f->get_content();
+					$result= fwrite($fhandle,$data);
+
+					// Close file handler.
+					fclose($fhandle);
+					
+					//bail if we errored out
+					if ($result===false) {
+						unlink($path);
+						return null;
+					}else{
+						//clear up the original file which we no longer need
+						self::delete_tempfile_from_draft("0", "/", $recordedname); 
+					}
+				
+				//return to Moodle what it needs to know
+				return array('path'=>$path, 'url'=>$url);
+				break;
+			
+			default:
+				return parent::get_file($url,$filename);
+			
+		}
+			
+      
     }
 	
 	/**
@@ -396,7 +506,7 @@ class repository_poodll extends repository {
 						);
 						//videorecorder
 						$list[] = array(
-							'title'=> "audiorecorder.pdl.mp4",
+							'title'=> "videorecorder.pdl.mp4",
 							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/repovideorecorder.jpg",
 							'thumbnail_width'=>280,
 							'thumbnail_height'=>100,
@@ -452,7 +562,7 @@ class repository_poodll extends repository {
 							'thumbnail_height'=>100,
 							'size'=>'',
 							'date'=>'',
-							'source'=>'poodll.pdl'
+							'source'=>'flashcards_1234.pdl'
 						);
 	
 			return $list;
@@ -498,6 +608,7 @@ class repository_poodll extends repository {
 				break;
 				
 			case self::POODLLSNAPSHOT:
+			case self::POODLLWHITEBOARD:
 				$ret = array('.jpg');
 				break;
 				
@@ -520,19 +631,30 @@ class repository_poodll extends repository {
      //   $usercontextid = get_context_instance(CONTEXT_USER, $USER->id)->id;
 	//	$draftitemid=0;
 	//	$ret = '<form name="poodll_repository" action="' . $CFG->wwwroot . '/repository/poodll/recorder.php">';
+		$filename = 'filename' . '_' . $this->options['recording_format'] ;
 		switch($this->options['recording_format']){
 			case self::POODLLAUDIO:
-				$ret = fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,'filename');
+				$ret = fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
 				break;
 			case self::POODLLVIDEO:
-				$ret = fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,'filename','','298', '340');
+				$ret = fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
 				break;
 			case self::MP3AUDIO:
 				//this is the mp3 recorder, by Paul Nichols
-				$ret = $this->fetchMP3PostRecorder("filename","apic.jpg", '290','340');
+				//$ret = $this->fetchMP3PostRecorder("filename","apic.jpg", '290','340');
+				//$ret = fetchMP3RecorderForRepo("filename");
+				$context = get_context_instance(CONTEXT_USER, $USER->id);
+				$ret = fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
 				break;
+			case self::POODLLWHITEBOARD:
+				$context = get_context_instance(CONTEXT_USER, $USER->id);
+				$ret = fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",510,370);
+				break;
+				
 			case self::POODLLSNAPSHOT:
-				$ret = fetchSnapshotCamera("filename","apic.jpg", '290','340');
+				$context = get_context_instance(CONTEXT_USER, $USER->id);
+				$ret = fetchSnapshotCameraForSubmission($filename,"apic.jpg", '290','340',$context->id,"user","draft","0");
+	
 				break;
 		}
 		echo $ret;

@@ -57,6 +57,11 @@ if(isset($GLOBALS["HTTP_RAW_POST_DATA"])) {
 	//write out the file
 	move_uploaded_file($_FILES["newfile"]["tmp_name"],$newfilepath );
 	
+	//this for PoodLL recorder
+	echo $filename;
+	return;
+	
+	//this for paul nichols recorder
 	//this next is so hacky, I feel like having a shower .. if only it wasn't open source ..
 	//basically we cant control the recorder behaviour well enough to behave like the other PoodLL widgets
 	//unlike the ajax like uploads of poodll recorders, the mp3recorder forwards page on to the POST page, 
