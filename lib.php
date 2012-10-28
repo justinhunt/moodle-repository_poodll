@@ -234,16 +234,23 @@ class repository_poodll extends repository {
 		switch($this->options['recording_format']){
 			case self::POODLLAUDIO:
 			case self::POODLLVIDEO:
-				//set up auto transcoding (mp3) or not
-				//The jsp to call is different.
-				$jsp="download.jsp";
-				if($ext ==".mp4" || $ext ==".mp3"){
-					$jsp = "convert.jsp";
-				}
+			
+				if (isMobile()){
+					$urltofile = moodle_url::make_draftfile_url("0", "/", $filename)->out(false);
+					$source=$urltofile;
+					
+				}else{
+					//set up auto transcoding (mp3) or not
+					//The jsp to call is different.
+					$jsp="download.jsp";
+					if($ext ==".mp4" || $ext ==".mp3"){
+						$jsp = "convert.jsp";
+					}
 						
-				$source="http://" . $CFG->filter_poodll_servername . 
+					$source="http://" . $CFG->filter_poodll_servername . 
 						":" . $CFG->filter_poodll_serverhttpport . "/poodll/" . $jsp. "?poodllserverid=" . 
 						$CFG->filter_poodll_serverid . "&filename=" . $filename . "&caller=" . urlencode($CFG->wwwroot);
+				}
 				break;
 			
 			//this was the download script for snapshots and direct uploads
@@ -296,7 +303,7 @@ class repository_poodll extends repository {
 					
 					}else{
 						$list[] = array(
-							'title'=> substr_replace($filename,'.audio.flv',-4),
+							'title'=> substr_replace($filename,'.audio' . $ext,-4),
 							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/audionormal.jpg",
 							'thumbnail_width'=>280,
 							'thumbnail_height'=>100,
@@ -379,7 +386,43 @@ class repository_poodll extends repository {
     public function get_file($url, $filename = '') {
         global $CFG,$USER;
 		
-		//determine the player options
+		//if its mobile then we need to treat it as an upload
+		if(isMobile()){
+			//get the filename as used by our recorder
+					$recordedname = basename($url);
+					
+					//get a temporary download path
+					$path = $this->prepare_file($filename);
+
+					//fetch the file we submitted earlier
+				   $fs = get_file_storage();
+				   $context = get_context_instance(CONTEXT_USER, $USER->id);
+					$f = $fs->get_file($context->id, "user", "draft",
+                        "0", "/", $recordedname);
+				
+					//write the file out to the temporary location
+					$fhandle = fopen($path, 'w');
+					$data = $f->get_content();
+					$result= fwrite($fhandle,$data);
+
+					// Close file handler.
+					fclose($fhandle);
+					
+					//bail if we errored out
+					if ($result===false) {
+						unlink($path);
+						return null;
+					}else{
+						//clear up the original file which we no longer need
+						self::delete_tempfile_from_draft("0", "/", $recordedname); 
+					}
+				
+				//return to Moodle what it needs to know
+				return array('path'=>$path, 'url'=>$url);
+		
+		}
+		
+		//if not mobile, determine the player options
 		switch($this->options['recording_format']){
 			case self::POODLLSNAPSHOT:
 			case self::MP3AUDIO:
@@ -628,32 +671,76 @@ class repository_poodll extends repository {
      */
     public function fetch_recorder() {
         global $USER,$CFG;
+        
+        $ret ="";
+        
+      //we get necessary info
+	 $context = get_context_instance(CONTEXT_USER, $USER->id);	
+     $filename = 'filename' . '_' . $this->options['recording_format'] ;
+
+	  
+	if(isMobile()){
+   //if(true){
+			switch($this->options['recording_format']){
+				case self::POODLLAUDIO:
+				case self::POODLLVIDEO:
+				case self::MP3AUDIO:
+					//we load up the file upload HTML5
+					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "video", true);
+					break;
+				
+				case self::POODLLWHITEBOARD:
+				case self::POODLLSNAPSHOT:
+					//we load up the file upload HTML5
+					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "image", true);
+					break;
+			}//end of switch
+    		
+    		//we need a dummy M object so we can reuse module js here
+    		$ret .= "<script type='text/javascript'>";
+    		$ret .= "var M = new Object();";
+    		$ret .= "</script>";
+    		
+    		//we load the poodll filter module JS for the HTML5 recording logic	
+			$ret .= "<script type=\"text/javascript\" src=\"{$CFG->wwwroot}/filter/poodll/module.js\"></script> ";
+        
+			
+        	//this calls the script we loaded just above, after we have a fileupload area to attach events to
+        	$ret .= "<script type='text/javascript'>";
+    		$ret .= "M.filter_poodll.loadmobileupload(0,0);";
+    		$ret .= "</script>";
+    		
+				
+        	echo $ret;
+        	return;
+        }//end of if is mobile
+      
      //   $usercontextid = get_context_instance(CONTEXT_USER, $USER->id)->id;
 	//	$draftitemid=0;
-	//	$ret = '<form name="poodll_repository" action="' . $CFG->wwwroot . '/repository/poodll/recorder.php">';
-		$filename = 'filename' . '_' . $this->options['recording_format'] ;
+	//	$ret .= '<form name="poodll_repository" action="' . $CFG->wwwroot . '/repository/poodll/recorder.php">';
+	//	$filename = 'filename' . '_' . $this->options['recording_format'] ;
 		switch($this->options['recording_format']){
 			case self::POODLLAUDIO:
-				$ret = fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
+				$ret .= fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
 				break;
 			case self::POODLLVIDEO:
-				$ret = fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
+				$ret .= fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
 				break;
 			case self::MP3AUDIO:
 				//this is the mp3 recorder, by Paul Nichols
 				//$ret = $this->fetchMP3PostRecorder("filename","apic.jpg", '290','340');
 				//$ret = fetchMP3RecorderForRepo("filename");
-				$context = get_context_instance(CONTEXT_USER, $USER->id);
-				$ret = fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
+				//$context = get_context_instance(CONTEXT_USER, $USER->id);
+				$ret .= fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
 				break;
 			case self::POODLLWHITEBOARD:
-				$context = get_context_instance(CONTEXT_USER, $USER->id);
-				$ret = fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",510,370);
+				//$context = get_context_instance(CONTEXT_USER, $USER->id);
+				$ret .= fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",510,370);
 				break;
 				
 			case self::POODLLSNAPSHOT:
-				$context = get_context_instance(CONTEXT_USER, $USER->id);
-				$ret = fetchSnapshotCameraForSubmission($filename,"apic.jpg", '290','340',$context->id,"user","draft","0");
+				//$context = get_context_instance(CONTEXT_USER, $USER->id);
+				$ret .= fetchSnapshotCameraForSubmission($filename,"apic.jpg", '290','340',$context->id,"user","draft","0");
 	
 				break;
 		}
