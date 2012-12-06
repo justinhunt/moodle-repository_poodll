@@ -235,7 +235,7 @@ class repository_poodll extends repository {
 			case self::POODLLAUDIO:
 			case self::POODLLVIDEO:
 			
-				if (isMobile()){
+				if (isMobile($CFG->filter_poodll_html5rec)){
 					$urltofile = moodle_url::make_draftfile_url("0", "/", $filename)->out(false);
 					$source=$urltofile;
 					
@@ -387,7 +387,7 @@ class repository_poodll extends repository {
         global $CFG,$USER;
 		
 		//if its mobile then we need to treat it as an upload
-		if(isMobile()){
+		if(isMobile($CFG->filter_poodll_html5rec)){
 			//get the filename as used by our recorder
 					$recordedname = basename($url);
 					
@@ -673,27 +673,29 @@ class repository_poodll extends repository {
         global $USER,$CFG;
         
         $ret ="";
-        
+	
       //we get necessary info
 	 $context = get_context_instance(CONTEXT_USER, $USER->id);	
      $filename = 'filename' . '_' . $this->options['recording_format'] ;
 
-	  
-	if(isMobile()){
-   //if(true){
+	 //HTML5 Recording and Uploading audio/video
+	if(isMobile($CFG->filter_poodll_html5rec) && 
+		($this->options['recording_format'] == self::POODLLAUDIO ||
+		$this->options['recording_format'] == self::MP3AUDIO ||
+		$this->options['recording_format'] == self::POODLLVIDEO )){
+
 			switch($this->options['recording_format']){
-				case self::POODLLAUDIO:
 				case self::POODLLVIDEO:
-				case self::MP3AUDIO:
 					//we load up the file upload HTML5
 					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "video", true);
 					break;
-				
-				case self::POODLLWHITEBOARD:
-				case self::POODLLSNAPSHOT:
+					
+				case self::POODLLAUDIO:
+				case self::MP3AUDIO:
 					//we load up the file upload HTML5
-					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "image", true);
+					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "audio", true);
 					break;
+			
 			}//end of switch
     		
     		//we need a dummy M object so we can reuse module js here
@@ -714,6 +716,33 @@ class repository_poodll extends repository {
         	echo $ret;
         	return;
         }//end of if is mobile
+		
+		//HTML5 WIdgets and Uploading Images
+		if(isMobile($CFG->filter_poodll_html5widgets) && 
+				($this->options['recording_format'] == self::POODLLWHITEBOARD ||
+				$this->options['recording_format'] == self::POODLLSNAPSHOT )){
+				
+				//we load up the file upload HTML5
+				$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "image", true);
+				
+				//we need a dummy M object so we can reuse module js here
+				$ret .= "<script type='text/javascript'>";
+				$ret .= "var M = new Object();";
+				$ret .= "</script>";
+				
+				//we load the poodll filter module JS for the HTML5 recording logic	
+				$ret .= "<script type=\"text/javascript\" src=\"{$CFG->wwwroot}/filter/poodll/module.js\"></script> ";
+			
+				
+				//this calls the script we loaded just above, after we have a fileupload area to attach events to
+				$ret .= "<script type='text/javascript'>";
+				$ret .= "M.filter_poodll.loadmobileupload(0,0);";
+				$ret .= "</script>";
+				
+				echo $ret;
+				return;			
+		}
+		
       
      //   $usercontextid = get_context_instance(CONTEXT_USER, $USER->id)->id;
 	//	$draftitemid=0;
