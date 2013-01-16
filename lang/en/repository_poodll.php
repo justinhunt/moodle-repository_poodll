@@ -7,7 +7,7 @@ $string['poodll:view'] = 'View PoodLL Plus repository';
 $string['account'] = 'Account information';
 
 $string['recordnew'] = 'New recording';
-$string['unexpectedevent'] = 'An unexpected event was detected. Please report this problem to the Moodle developers.';
+$string['unexpectedevent'] = 'An unexpected event was detected. Consider reporting this problem to the Moodle developers.';
 
 $string['save'] = 'Save';
 $string['name'] = 'Name';
@@ -17,5 +17,4 @@ $string['mp3recorder'] = 'AudioRecorder(MP3 Standalone)';
 $string['snapshot'] = 'Snapshot(Webcam)';
 $string['widget'] = 'PoodLL Widgets';
 $string['whiteboard'] = 'PoodLL Whiteboard';
-
 $string['recording_format'] = 'PoodLL Repository Type';
