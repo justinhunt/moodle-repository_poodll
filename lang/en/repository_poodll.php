@@ -18,3 +18,5 @@ $string['snapshot'] = 'Snapshot(Webcam)';
 $string['widget'] = 'PoodLL Widgets';
 $string['whiteboard'] = 'PoodLL Whiteboard';
 $string['recording_format'] = 'PoodLL Repository Type';
+$string['hide_player_options'] = 'Hide Audio Player Options';
+$string['hide_player_options_details'] = 'Hide the PoodLL audio player selection screen after recording audio.';

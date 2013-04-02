@@ -52,9 +52,16 @@ class repository_poodll extends repository {
 			get_string('whiteboard', 'repository_poodll')
         );
         
-        $mform->addElement('select', 'recording_format', get_string('recording_format', 'repository_poodll'), $recording_format_options);
-        
+        $mform->addElement('select', 'recording_format', get_string('recording_format', 'repository_poodll'), $recording_format_options);  
         $mform->addRule('recording_format', get_string('required'), 'required', null, 'client');
+		$mform->addElement('checkbox', 'hide_player_options', 
+			get_string('hide_player_options', 'repository_poodll'),
+			get_string('hide_player_options_details', 'repository_poodll'));
+		//$mform->setDefault('hide_player_options', 0);
+		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLVIDEO);
+		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLSNAPSHOT);
+		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLWIDGET);
+		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLWHITEBOARD);
 		
     }
 	
