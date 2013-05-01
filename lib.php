@@ -37,7 +37,7 @@ class repository_poodll extends repository {
     }
     
     public static function get_instance_option_names() {
-    	return array('recording_format');
+    	return array('recording_format','hide_player_opts');
     }
     
     //2.3 requires static, 2.2 non static, what to do? Justin 20120616 
@@ -54,19 +54,21 @@ class repository_poodll extends repository {
         
         $mform->addElement('select', 'recording_format', get_string('recording_format', 'repository_poodll'), $recording_format_options);  
         $mform->addRule('recording_format', get_string('required'), 'required', null, 'client');
-		$mform->addElement('checkbox', 'hide_player_options', 
-			get_string('hide_player_options', 'repository_poodll'),
-			get_string('hide_player_options_details', 'repository_poodll'));
-		//$mform->setDefault('hide_player_options', 0);
-		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLVIDEO);
-		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLSNAPSHOT);
-		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLWIDGET);
-		$mform->disabledIf('hide_player_options', 'recording_format', 'eq', POODLLWHITEBOARD);
-		
-    }
-	
-	
+		/* $mform->addElement('checkbox', 'hide_player_opts', 
+			get_string('hide_player_opts', 'repository_poodll'),
+			get_string('hide_player_opts_details', 'repository_poodll'));
+			*/
+		$hide_player_opts_options = array(
+        	get_string('hide_player_opts_show', 'repository_poodll'),
+        	get_string('hide_player_opts_hide', 'repository_poodll'));
+		 $mform->addElement('select', 'hide_player_opts', get_string('hide_player_opts', 'repository_poodll'), $hide_player_opts_options);
+		//$mform->setDefault('hide_player_opts', 0);
+		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLVIDEO);
+		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLSNAPSHOT);
+		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLWIDGET);
+		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLWHITEBOARD);
 
+    }
 
 	//login overrride start
 	//*****************************************************************
@@ -225,8 +227,11 @@ class repository_poodll extends repository {
     private function fetch_filelist($filename) {
 		global $CFG,$USER;
 	
-		$showoptions=true;
-		$canconvert=true;
+		$hideoptions=false;
+		if(!empty($this->options['hide_player_opts'])){
+			$hideoptions=$this->options['hide_player_opts'];
+		}
+	
 	
         $list = array();
 		
@@ -320,7 +325,7 @@ class repository_poodll extends repository {
 						);
 					}
 				
-				if($showoptions){
+				if(!$hideoptions){
 					$list[] = array(
 							'title'=> substr_replace($filename,'.mini'. $ext,-4),
 							'thumbnail'=>"{$CFG->wwwroot}/repository/poodll/pix/miniplayer.jpg",
@@ -626,7 +631,7 @@ class repository_poodll extends repository {
      */
     public function supported_returntypes() {
 
-		if($this->options['recording_format'] == self::POODLLWIDGET){
+		if(!empty($this->options['recording_format']) && $this->options['recording_format'] == self::POODLLWIDGET){
 			return FILE_EXTERNAL;
 		}else{
 			return FILE_INTERNAL;
