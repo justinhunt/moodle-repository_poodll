@@ -36,8 +36,4 @@ $PAGE->set_url($CFG->wwwroot.'/repository/poodll/record.php', array('repo_id' =>
 		}else{
 			echo 'filename:' . $filename ;
 		} 
-?>
-</div>
-<?php
-//$OUTPUT->footer();
-//print_footer();
+echo "</div>";
