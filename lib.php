@@ -776,7 +776,7 @@ class repository_poodll extends repository {
 				break;
 			case self::POODLLWHITEBOARD:
 				//$context = get_context_instance(CONTEXT_USER, $USER->id);
-				$ret .= fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",510,370);
+				$ret .= fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",305,350,"","poodll");
 				break;
 				
 			case self::POODLLSNAPSHOT:
