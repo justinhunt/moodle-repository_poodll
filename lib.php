@@ -408,7 +408,7 @@ class repository_poodll extends repository {
 
 					//fetch the file we submitted earlier
 				   $fs = get_file_storage();
-				   $context = get_context_instance(CONTEXT_USER, $USER->id);
+				   $context = context_user::instance($USER->id);
 					$f = $fs->get_file($context->id, "user", "draft",
                         "0", "/", $recordedname);
 				
@@ -447,7 +447,7 @@ class repository_poodll extends repository {
 
 					//fetch the file we submitted earlier
 				   $fs = get_file_storage();
-				   $context = get_context_instance(CONTEXT_USER, $USER->id);
+				   $context = context_user::instance($USER->id);
 					$f = $fs->get_file($context->id, "user", "draft",
                         "0", "/", $recordedname);
 				
@@ -687,7 +687,7 @@ class repository_poodll extends repository {
         $ret ="";
 	
       //we get necessary info
-	 $context = get_context_instance(CONTEXT_USER, $USER->id);	
+	 $context = context_user::instance($USER->id);	
      $filename = 'filename' . '_' . $this->options['recording_format'] ;
 
 	 //HTML5 Recording and Uploading audio/video
@@ -771,16 +771,13 @@ class repository_poodll extends repository {
 				//this is the mp3 recorder, by Paul Nichols
 				//$ret = $this->fetchMP3PostRecorder("filename","apic.jpg", '290','340');
 				//$ret = fetchMP3RecorderForRepo("filename");
-				//$context = get_context_instance(CONTEXT_USER, $USER->id);
 				$ret .= fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
 				break;
 			case self::POODLLWHITEBOARD:
-				//$context = get_context_instance(CONTEXT_USER, $USER->id);
 				$ret .= fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",305,350,"","poodll");
 				break;
 				
 			case self::POODLLSNAPSHOT:
-				//$context = get_context_instance(CONTEXT_USER, $USER->id);
 				$ret .= fetchSnapshotCameraForSubmission($filename,"apic.jpg", '290','340',$context->id,"user","draft","0");
 	
 				break;
