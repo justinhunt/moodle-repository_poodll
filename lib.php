@@ -762,10 +762,12 @@ class repository_poodll extends repository {
 	//	$filename = 'filename' . '_' . $this->options['recording_format'] ;
 		switch($this->options['recording_format']){
 			case self::POODLLAUDIO:
-				$ret .= fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
+				//$ret .= fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
+				$ret .= fetchAudioRecorderForSubmission('auto','poodllrepository', $filename,$context->id,'user','draft',0,0);
 				break;
 			case self::POODLLVIDEO:
-				$ret .= fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
+				//$ret .= fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
+				$ret .= fetchVideoRecorderForSubmission('swf', 'poodllrepository', $filename, $context->id,'user','draft',0,0);
 				break;
 			case self::MP3AUDIO:
 				//this is the mp3 recorder, by Paul Nichols

@@ -24,7 +24,7 @@ if(empty($repo)) {
 //$PAGE->requires->css(new moodle_url($CFG->httpswwwroot . '/filter/poodll/styles.css'));
 echo "<link rel=\"stylesheet\" href=\"{$CFG->wwwroot}/filter/poodll/styles.css\" />";
 
-$PAGE->set_context(get_context_instance(CONTEXT_USER, $USER->id));
+$PAGE->set_context(context_user::instance($USER->id));
 $PAGE->set_url($CFG->wwwroot.'/repository/poodll/record.php', array('repo_id' => $repo_id));
 //print_header(null, get_string('recordnew', 'repository_poodll'),null, null, null, false);
 ?>
