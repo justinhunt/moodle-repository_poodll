@@ -6,9 +6,7 @@
  *
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  */
- 
-//Get our poodll resource handling lib
-require_once($CFG->dirroot . '/filter/poodll/poodllresourcelib.php');
+
 //added for moodle 2
 require_once($CFG->libdir . '/filelib.php');
  
@@ -699,13 +697,13 @@ class repository_poodll extends repository {
 			switch($this->options['recording_format']){
 				case self::POODLLVIDEO:
 					//we load up the file upload HTML5
-					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "video", true);
+					$ret .= \filter_poodll\poodlltools::fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "video", true);
 					break;
 					
 				case self::POODLLAUDIO:
 				case self::MP3AUDIO:
 					//we load up the file upload HTML5
-					$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "audio", true);
+					$ret .= \filter_poodll\poodlltools::fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "audio", true);
 					break;
 			
 			}//end of switch
@@ -735,7 +733,7 @@ class repository_poodll extends repository {
 				$this->options['recording_format'] == self::POODLLSNAPSHOT )){
 				
 				//we load up the file upload HTML5
-				$ret .= fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "image", true);
+				$ret .= \filter_poodll\poodlltools::fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "image", true);
 				
 				//we need a dummy M object so we can reuse module js here
 				$ret .= "<script type='text/javascript'>";
@@ -762,25 +760,25 @@ class repository_poodll extends repository {
 	//	$filename = 'filename' . '_' . $this->options['recording_format'] ;
 		switch($this->options['recording_format']){
 			case self::POODLLAUDIO:
-				//$ret .= fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
-				$ret .= fetchAudioRecorderForSubmission('auto','poodllrepository', $filename,$context->id,'user','draft',0,0);
+				//$ret .= \filter_poodll\poodlltools::fetchSimpleAudioRecorder('swf','poodllrepository',$USER->id,$filename);
+				$ret .= \filter_poodll\poodlltools::fetchAudioRecorderForSubmission('auto','poodllrepository', $filename,$context->id,'user','draft',0,0);
 				break;
 			case self::POODLLVIDEO:
-				//$ret .= fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
-				$ret .= fetchVideoRecorderForSubmission('swf', 'poodllrepository', $filename, $context->id,'user','draft',0,0);
+				//$ret .= \filter_poodll\poodlltools::fetchSimpleVideoRecorder('swf','poodllrepository',$USER->id,$filename,'','298', '340');
+				$ret .= \filter_poodll\poodlltools::fetchVideoRecorderForSubmission('swf', 'poodllrepository', $filename, $context->id,'user','draft',0,0);
 				break;
 			case self::MP3AUDIO:
 				//this is the mp3 recorder, by Paul Nichols
 				//$ret = $this->fetchMP3PostRecorder("filename","apic.jpg", '290','340');
 				//$ret = fetchMP3RecorderForRepo("filename");
-				$ret .= fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
+				$ret .= \filter_poodll\poodlltools::fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
 				break;
 			case self::POODLLWHITEBOARD:
-				$ret .= fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",305,350,"","poodll");
+				$ret .= \filter_poodll\poodlltools::fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",305,350,"","poodll");
 				break;
 				
 			case self::POODLLSNAPSHOT:
-				$ret .= fetchSnapshotCameraForSubmission($filename,"apic.jpg", '290','340',$context->id,"user","draft","0");
+				$ret .= \filter_poodll\poodlltools::fetchSnapshotCameraforSubmission($filename,"apic.jpg", '290','340',$context->id,"user","draft","0");
 	
 				break;
 		}
