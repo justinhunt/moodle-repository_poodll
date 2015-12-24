@@ -81,38 +81,7 @@ class repository_poodll extends repository {
 		
 		//Init our array
         $ret = array();
-		
-		//If we plan to use a div which floats over the real form, we can use this 
-		//for Paul Nichols MP3 recorder or Snap shot . But we don't use this anymore.
-		//its legacy code.
-		/*
-		$injectwidget= "";
-		switch ($this->options['recording_format']){
-			//MP3 Recorder
-			case 3000: $injectwidget=$this->fetch_mp3recorder();
-					
-					//add for 2.3 compatibility Justin 20120622
-					 $ret = array('nosearch'=>true, 'norefresh'=>true);
-					 
-					$ret['upload'] = array('label'=>$injectwidget, 'id'=>'repo-form');
-					return $ret;
-					break;
-			//snapshot 
-			case 2000: 
-				$iframe = "<input type=\"hidden\"  name=\"upload_filename\" id=\"upload_filename\" value=\"sausages.mp3\"/>";
-                $iframe = "<textarea name=\"upload_filedata\" id=\"upload_filedata\" style=\"display:none;\"></textarea>";
-				$iframe .= "<div style=\"position:absolute; top:0;left:0;right:0;bottom:0; background-color:#fff;\">";
-				$iframe .= "<iframe scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}\" height=\"350\" width=\"450\"></iframe>"; 
-				$iframe .= "</div>";
-				$ret['upload'] = array('label'=>$iframe, 'id'=>'repo-form');
-				return $ret;
-				break;
-			default:
-				//just fall through to rest of code
-		
-		}
-		
-		*/
+
 		
 		//If we are selecting PoodLL Widgets, we don't need to show a login/search screen
 		//just list the widgets
@@ -160,7 +129,9 @@ class repository_poodll extends repository {
 					$button = "";
 					break;
         }
-		$search->label = "<iframe scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}\" height=\"". $height ."\" width=\"" . $width . "\"></iframe>" . $button; 
+
+
+		$search->label = "<iframe scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}\" height=\"". $height ."\" width=\"" . $width . "\"></iframe>" . $button;
 
 		$sort = new stdClass();
         $sort->type = 'hidden';
@@ -245,7 +216,7 @@ class repository_poodll extends repository {
 			case self::POODLLAUDIO:
 			case self::POODLLVIDEO:
 			
-				if (isMobile($CFG->filter_poodll_html5rec)){
+				if (\filter_poodll\poodlltools::isMobile($CFG->filter_poodll_html5rec)){
 					$urltofile = moodle_url::make_draftfile_url("0", "/", $filename)->out(false);
 					$source=$urltofile;
 					
@@ -397,7 +368,7 @@ class repository_poodll extends repository {
         global $CFG,$USER;
 		
 		//if its mobile then we need to treat it as an upload
-		if(isMobile($CFG->filter_poodll_html5rec)){
+		if(\filter_poodll\poodlltools::isMobile($CFG->filter_poodll_html5rec)){
 			//get the filename as used by our recorder
 					$recordedname = basename($url);
 					
@@ -689,7 +660,7 @@ class repository_poodll extends repository {
      $filename = 'filename' . '_' . $this->options['recording_format'] ;
 
 	 //HTML5 Recording and Uploading audio/video
-	if(isMobile($CFG->filter_poodll_html5rec) && 
+	if(\filter_poodll\poodlltools::isMobile($CFG->filter_poodll_html5rec) && 
 		($this->options['recording_format'] == self::POODLLAUDIO ||
 		$this->options['recording_format'] == self::MP3AUDIO ||
 		$this->options['recording_format'] == self::POODLLVIDEO )){
@@ -707,7 +678,7 @@ class repository_poodll extends repository {
 					break;
 			
 			}//end of switch
-    		
+    		/*
     		//we need a dummy M object so we can reuse module js here
     		$ret .= "<script type='text/javascript'>";
     		$ret .= "var M = new Object();";
@@ -721,20 +692,20 @@ class repository_poodll extends repository {
         	$ret .= "<script type='text/javascript'>";
     		$ret .= "M.filter_poodll.loadmobileupload(0,0);";
     		$ret .= "</script>";
+    		*/
     		
 				
-        	echo $ret;
-        	return;
+        	return $ret;
         }//end of if is mobile
 		
 		//HTML5 WIdgets and Uploading Images
-		if(isMobile($CFG->filter_poodll_html5widgets) && 
+		if(\filter_poodll\poodlltools::isMobile($CFG->filter_poodll_html5widgets) && 
 				($this->options['recording_format'] == self::POODLLWHITEBOARD ||
 				$this->options['recording_format'] == self::POODLLSNAPSHOT )){
 				
 				//we load up the file upload HTML5
 				$ret .= \filter_poodll\poodlltools::fetch_HTML5RecorderForSubmission($filename, $context->id,"user","draft","0", "image", true);
-				
+				/*
 				//we need a dummy M object so we can reuse module js here
 				$ret .= "<script type='text/javascript'>";
 				$ret .= "var M = new Object();";
@@ -748,9 +719,9 @@ class repository_poodll extends repository {
 				$ret .= "<script type='text/javascript'>";
 				$ret .= "M.filter_poodll.loadmobileupload(0,0);";
 				$ret .= "</script>";
+				*/
 				
-				echo $ret;
-				return;			
+				return $ret;
 		}
 		
       
@@ -774,7 +745,7 @@ class repository_poodll extends repository {
 				$ret .= \filter_poodll\poodlltools::fetchMP3RecorderForSubmission($filename,$context->id,"user","draft","0" );
 				break;
 			case self::POODLLWHITEBOARD:
-				$ret .= \filter_poodll\poodlltools::fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",305,350,"","poodll");
+				$ret .= \filter_poodll\poodlltools::fetchWhiteboardForSubmission($filename,$context->id,"user","draft","0",400,300,"",'drawingboard');
 				break;
 				
 			case self::POODLLSNAPSHOT:
@@ -782,7 +753,7 @@ class repository_poodll extends repository {
 	
 				break;
 		}
-		echo $ret;
+		return $ret;
 
 	}
 	

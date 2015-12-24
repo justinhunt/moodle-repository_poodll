@@ -1,7 +1,7 @@
 <?php
 require_once('../../config.php');
 require_once($CFG->dirroot.'/repository/lib.php');
-global $PAGE, $USER;
+global $PAGE, $USER, $OUTPUT;
 
 //this doesnt seem to work here. So had to put an echo "...embed-comressed.jpg" code below
 //$PAGE->requires->js(new moodle_url($CFG->httpswwwroot . '/filter/poodll/flash/embed-compressed.js'),true);
@@ -23,17 +23,17 @@ if(empty($repo)) {
 //we meed to do something like this to get a progress bar in the repo for html5
 //$PAGE->requires->css(new moodle_url($CFG->httpswwwroot . '/filter/poodll/styles.css'));
 echo "<link rel=\"stylesheet\" href=\"{$CFG->wwwroot}/filter/poodll/styles.css\" />";
-
+$PAGE->requires->css(new moodle_url("/filter/poodll/styles.css"));
+$PAGE->requires->jquery();
 $PAGE->set_context(context_user::instance($USER->id));
+$PAGE->set_pagelayout('embedded');
 $PAGE->set_url($CFG->wwwroot.'/repository/poodll/record.php', array('repo_id' => $repo_id));
-//print_header(null, get_string('recordnew', 'repository_poodll'),null, null, null, false);
-?>
-
-<div style="text-align: center;">
-<?php if($filename==''){
-			echo "<script type=\"text/javascript\" src=\"{$CFG->wwwroot}/filter/poodll/flash/embed-compressed.js\"></script> ";
-			$repo->fetch_recorder();
-		}else{
-			echo 'filename:' . $filename ;
-		} 
-echo "</div>";
+echo $OUTPUT->header();
+echo html_writer::start_div('',array('style'=>"text-align: center;"));
+if($filename=='') {
+	echo $repo->fetch_recorder();
+}else{
+	echo 'filename:' . $filename ;
+}
+echo html_writer::end_div();
+echo $OUTPUT->footer();
