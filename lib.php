@@ -74,66 +74,41 @@ class repository_poodll extends repository {
      // Generate search form
      //
     public function print_login($ajax = true) {
-		global $CFG,$PAGE,$USER;
+        global $CFG,$PAGE,$USER;
 
-		//In Moodle 2.3 early version, screen was too narrow
-		$screenistoonarrow=false;
-		
-		//Init our array
+        //Init our array
         $ret = array();
 
 		
-		//If we are selecting PoodLL Widgets, we don't need to show a login/search screen
-		//just list the widgets
-		if ($this->options['recording_format'] == self::POODLLWIDGET){
-			$ret = array();
-			$ret['dynload'] = true;
-			$ret['nosearch'] = true;
-			$ret['nologin'] = true;
-			$ret['list'] = $this->fetch_poodllwidgets();
-			return $ret;
-		
-		}	
-		
-		//If we are using an iframe based repo
+        //If we are selecting PoodLL Widgets, we don't need to show a login/search screen
+        //just list the widgets
+        if ($this->options['recording_format'] == self::POODLLWIDGET){
+                $ret = array();
+                $ret['dynload'] = true;
+                $ret['nosearch'] = true;
+                $ret['nologin'] = true;
+                $ret['list'] = $this->fetch_poodllwidgets();
+                return $ret;
+
+        }	
+
+        //If we are using an iframe based repo
         $search = new stdClass();
         $search->type = 'hidden';
         $search->id   = 'filename' . '_' . $this->options['recording_format'] ;
         $search->name = 's';
        // $search->value = 'winkle.mp3';
         
-        //change next button and iframe proportions depending on recorder
-        switch($this->options['recording_format']){
-        	//video,snapshot
-        	case self::POODLLVIDEO: 
-			case self::POODLLSNAPSHOT: 	
-					$height=350;
-					$width=330;
-					if($screenistoonarrow){
-						$button = "<button class=\"fp-login-submit\" style=\"position:relative; top:-200px;\" >Next >>></button>";
-					}else{
-						$button= "";
-					}
-					break;
-			//audio		
-			case self::POODLLAUDIO:
-			case self::MP3AUDIO:
-					$height=220;
-					$width=450;
-					$button = "";
-					break;
-			
-			case self::POODLLWHITEBOARD:
-					$height=380;
-					$width=520;
-					$button = "";
-					break;
-        }
+        //setdefault iframe height, which in ja will be adjusted
+        $height=150;
+        $width=310;
 
-
-		$search->label = "<iframe scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}\" height=\"". $height ."\" width=\"" . $width . "\"></iframe>" . $button;
-
-		$sort = new stdClass();
+        $iframeid = html_writer::random_id('repository_poodll');
+	$search->label = "<iframe id=\"$iframeid\" scrolling=\"no\" frameBorder=\"0\" src=\"{$CFG->wwwroot}/repository/poodll/recorder.php?repo_id={$this->id}&iframe_id=$iframeid\" height=\"". $height ."\" width=\"" . $width . "\"></iframe>";
+//when called from here it did not get run ...? so call from iframe       
+// $PAGE->requires->js_call_amd("filter_poodll/responsiveiframe", 'init', array(array('iframeid' => $iframeid)));
+        
+	$sort = new stdClass();
         $sort->type = 'hidden';
         $sort->options = array();
         $sort->id = 'poodll_sort';
@@ -149,7 +124,7 @@ class repository_poodll extends repository {
     }
     
 
-	public function check_login() {
+    public function check_login() {
         return !empty($this->keyword);
     }
 
