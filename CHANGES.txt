@@ -1,8 +1,11 @@
 Change List
 =========
+Version 3.1.0(Build 2018041000)
+-Implemented new Moodle Privacy API
+
 Version 2018020701
 Removed Red5 references
-Renmoved Widget selection option
+Removed Widget selection option
 Removed player selection feature (though we want it back, just working and back)
 
 
