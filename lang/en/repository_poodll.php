@@ -4,6 +4,7 @@ $string['repositoryname'] = 'PoodLL';
 $string['configplugin'] = 'Configure PoodLL Repository';
 $string['pluginname_help'] = 'PoodLL repository';
 $string['poodll:view'] = 'View PoodLL Plus repository';
+$string['privacy:metadata'] = 'The Poodll Repository plugin does not store any personal data.';
 $string['account'] = 'Account information';
 
 $string['recordnew'] = 'New recording';
