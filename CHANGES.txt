@@ -1,5 +1,8 @@
 Change List
 =========
+Version 3.1.01(Build 2018060100)
+- Fixed bug in snapshot recorder
+
 Version 3.1.0(Build 2018041000)
 -Implemented new Moodle Privacy API
 

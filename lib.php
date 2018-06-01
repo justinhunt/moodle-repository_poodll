@@ -508,8 +508,7 @@ class repository_poodll extends repository {
 				break;
 				
 			case self::POODLLSNAPSHOT:
-				$ret .= \filter_poodll\poodlltools::fetchSnapshotCameraforSubmission($filename,"apic.jpg", '290','340',$context->id,$component,$filearea,$itemid);
-	
+                $ret .= \filter_poodll\poodlltools::fetchHTML5SnapshotCamera($filename,290,340,$context->id,$component,$filearea,$itemid,false);
 				break;
 		}
 		return $ret;
