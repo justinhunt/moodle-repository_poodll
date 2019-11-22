@@ -42,25 +42,15 @@ class repository_poodll extends repository {
     // created a 2.3 repo Justin 20120621
     public static function instance_config_form($mform) {
         $recording_format_options = array(
-        	get_string('audio', 'repository_poodll'),
-        	get_string('video', 'repository_poodll'),
-			get_string('snapshot', 'repository_poodll'),
-			get_string('whiteboard', 'repository_poodll')
+                self::POODLLAUDIO=>get_string('audio', 'repository_poodll'),
+                self::POODLLVIDEO=>get_string('video', 'repository_poodll'),
+                self::POODLLSNAPSHOT=>get_string('snapshot', 'repository_poodll'),
+                self::POODLLWHITEBOARD=>get_string('whiteboard', 'repository_poodll')
         );
         
         $mform->addElement('select', 'recording_format', get_string('recording_format', 'repository_poodll'), $recording_format_options);  
         $mform->addRule('recording_format', get_string('required'), 'required', null, 'client');
-/*
-		$hide_player_opts_options = array(
-        	get_string('hide_player_opts_show', 'repository_poodll'),
-        	get_string('hide_player_opts_hide', 'repository_poodll'));
-		 $mform->addElement('select', 'hide_player_opts', get_string('hide_player_opts', 'repository_poodll'), $hide_player_opts_options);
-		//$mform->setDefault('hide_player_opts', 0);
-		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLVIDEO);
-		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLSNAPSHOT);
-		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLWIDGET);
-		$mform->disabledIf('hide_player_opts', 'recording_format', 'eq', self::POODLLWHITEBOARD);
-*/
+
     }
 
 	//login overrride start
@@ -436,7 +426,7 @@ class repository_poodll extends repository {
 
 
     /**
-     * Returns the suported returns values.
+     * Returns the supported returns values.
      * 
      * @return string supported return value
      */

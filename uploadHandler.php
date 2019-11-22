@@ -84,7 +84,7 @@ if(isset($GLOBALS["HTTP_RAW_POST_DATA"])) {
 		</html>
 		<?php
 
-//if not receiveing a file, but being asked to return a previously received file, ie by moodle
+//if not receiving a file, but being asked to return a previously received file, ie by moodle
 //This url of this script is passed to repo, which then uses it as the download url
 //this way we leave all the saving and file system to standard repo behaviour
 //if server can't resolve it own DNS it will fail, that should never happen ... right?
